@@ -12,6 +12,7 @@
 
 #define BUF_LEN sizeof(struct inotify_event) + NAME_MAX + 1
 
+/* just a wrapper for read() */
 void xread(int fd, void *buf, size_t len){
    ssize_t ret;
 
@@ -25,6 +26,10 @@ void xread(int fd, void *buf, size_t len){
    }
 }
 
+/*this function will monitor modifications
+ * on the file "path", and when one
+ * occurs the "callback" function gets called
+ */
 void file_watch(char *path, void (*callback)(char *filepath) ){
    char buf[BUF_LEN];
    struct inotify_event *event;
@@ -49,16 +54,6 @@ void file_watch(char *path, void (*callback)(char *filepath) ){
       event = (struct inotify_event *) buf;
 
       if( ( event->mask & IN_MODIFY ) == IN_MODIFY)
-         printf("the file was modified\n");
+         callback(path);
    }
-}
-
-int main(int argc, char *argv[] ){
-   if( argc < 2 ){
-      printf("no input file given!\n");
-      exit(1);
-   }
-
-   file_watch(argv[1], NULL);
-   return 0;
 }
