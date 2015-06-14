@@ -13,6 +13,7 @@
 int main(int argc, char *argv[])
 {
    char *url = (char *) malloc( sizeof(char) * URL_LEN );
+   char *json_data = (char *) malloc( sizeof(char) * URL_LEN );
    char *code = (char *) malloc( sizeof(char) * URL_LEN );
 
    url = obtain_auth_code_url( url );
@@ -21,6 +22,10 @@ int main(int argc, char *argv[])
    printf("Paste the code you obtained:\n");
 
    scanf("%s",code);
+
+   if( !(json_data = exchange_code_for_token( code ) ) ){
+      exit(1);
+   }
 
    return 0;
 }
