@@ -6,14 +6,14 @@
  */
 
 #include "notifier.h"
-#include "uploader.h"
+#include "gdriveUploader.h"
 #include <stdio.h>
 #include <stdlib.h>
 
 int main(int argc, char *argv[])
 {
    char *url = (char *) malloc( sizeof(char) * URL_LEN );
-   char *json_data = (char *) malloc( sizeof(char) * URL_LEN );
+   jsmntok_t *json_data = (jsmntok_t *) malloc( sizeof(jsmntok_t) * JSON_RESPONSE_SIZE );
    char *code = (char *) malloc( sizeof(char) * URL_LEN );
 
    url = obtain_auth_code_url( url );
@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
 
    scanf("%s",code);
 
-   if( !(json_data = exchange_code_for_token( code ) ) ){
+   if( !(json_data = exchange_code_for_token( code, json_data ) ) ){
       exit(1);
    }
 
