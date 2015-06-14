@@ -9,7 +9,7 @@
 #include "jsmn/jsmn.h"
 
 #define URL_LEN 256
-#define JSON_RESPONSE_SIZE 4
+#define JSON_RESPONSE_SIZE 9
 
 #define AUTH "https://accounts.google.com/o/oauth2/auth?"
 #define SCOPE "scope=https://www.googleapis.com/auth/drive&"

@@ -3,7 +3,7 @@
  * for uploading a file into a user's Google Drive
  */
 
-#include "uploader.h"
+#include "gdriveUploader.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -49,7 +49,7 @@ jsmntok_t *json_parser(char *json, jsmntok_t *json_data)
    jsmn_init(&parser);
 
    /* parse the content of "json"*/
-   if( (err = jsmn_parse(&parser, json, json_data, JSON_RESPONSE_SIZE) ) < 0 ){
+   if( (err = jsmn_parse(&parser, json, strlen(json), json_data,JSON_RESPONSE_SIZE) ) < 0 ){
       switch( err ){
          case JSMN_ERROR_INVAL:
             printf("bad token, JSON string is corrupted\n");

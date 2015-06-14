@@ -12,8 +12,9 @@
 
 int main(int argc, char *argv[])
 {
-   char *url = (char *) malloc( sizeof(char) * URL_LEN );
    jsmntok_t *json_data = (jsmntok_t *) malloc( sizeof(jsmntok_t) * JSON_RESPONSE_SIZE );
+   char *json_string = (char *) malloc( sizeof(char) * URL_LEN );
+   char *url = (char *) malloc( sizeof(char) * URL_LEN );
    char *code = (char *) malloc( sizeof(char) * URL_LEN );
 
    url = obtain_auth_code_url( url );
@@ -23,7 +24,7 @@ int main(int argc, char *argv[])
 
    scanf("%s",code);
 
-   if( !(json_data = exchange_code_for_token( code, json_data ) ) ){
+   if( !(json_data = exchange_code_for_token( code, json_data, json_string ) ) ){
       exit(1);
    }
 
