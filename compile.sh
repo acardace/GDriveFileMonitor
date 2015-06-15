@@ -1,2 +1,2 @@
 #!/bin/bash
-gcc -Wall -O2 *.c ./jsmn/libjsmn.a  -lcurl -o autoUploader
+gcc -Wall -O2 -ggdb *.c ./jsmn/libjsmn.a  -lcurl -o autoUploader
