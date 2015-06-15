@@ -12,8 +12,7 @@
 
 int main(int argc, char *argv[])
 {
-   jsmntok_t *json_data = (jsmntok_t *) malloc( sizeof(jsmntok_t) * JSON_RESPONSE_SIZE );
-   char *json_string = (char *) malloc( sizeof(char) * URL_LEN );
+   json_struct *json_data = (json_struct *) malloc( sizeof(json_struct) * JSON_RESPONSE_SIZE );
    char *url = (char *) malloc( sizeof(char) * URL_LEN );
    char *code = (char *) malloc( sizeof(char) * URL_LEN );
 
@@ -24,9 +23,12 @@ int main(int argc, char *argv[])
 
    scanf("%s",code);
 
-   if( !(json_data = exchange_code_for_token( code, json_data, json_string ) ) ){
+   if( !(json_data = exchange_code_for_token( code, json_data) ) ){
       exit(1);
    }
 
+   free(url);
+   free(code);
+   free(json_data);
    return 0;
 }

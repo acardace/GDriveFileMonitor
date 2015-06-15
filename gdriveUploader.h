@@ -22,6 +22,13 @@
 #define AUTH2 "https://www.googleapis.com/oauth2/v3/token"
 #define GRANT_TYPE "grant_type=authorization_code"
 
+typedef struct {
+   char access_token[256];
+   long int expires_in;
+   char token_type[8];
+   char refresh_token[256];
+} json_struct;
+
 /*
  * this function builds up the
  * string which is to be copied
@@ -37,6 +44,6 @@ char *obtain_auth_code_url(char *url);
  * to obtain the access token from the
  * Google API authorization service
  */
-jsmntok_t *exchange_code_for_token(char *code, jsmntok_t *json_data, char *json_buffer);
+json_struct *exchange_code_for_token(char *code, json_struct *json_data);
 
 #endif

@@ -40,16 +40,18 @@ size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 /* json parser
  * saves the content of "json" in json_data
  */
-jsmntok_t *json_parser(char *json, jsmntok_t *json_data)
+json_struct *json_parser(char *json, json_struct *json_data)
 {
    jsmn_parser parser;
    jsmnerr_t err;
+   jsmntok_t jsmn_json[JSON_RESPONSE_SIZE];
+   char expires_in_str[8];
 
    /*init the parser*/
    jsmn_init(&parser);
 
    /* parse the content of "json"*/
-   if( (err = jsmn_parse(&parser, json, strlen(json), json_data,JSON_RESPONSE_SIZE) ) < 0 ){
+   if( (err = jsmn_parse(&parser, json, strlen(json), jsmn_json,JSON_RESPONSE_SIZE) ) < 0 ){
       switch( err ){
          case JSMN_ERROR_INVAL:
             printf("bad token, JSON string is corrupted\n");
@@ -64,6 +66,13 @@ jsmntok_t *json_parser(char *json, jsmntok_t *json_data)
       return NULL;
    }
 
+   /* put the parsed content in a json_struct*/
+   memcpy( json_data->access_token, json + jsmn_json[2].start, jsmn_json[2].end - jsmn_json[2].start);
+   memcpy( json_data->token_type, json + jsmn_json[4].start, jsmn_json[4].end - jsmn_json[4].start);
+   memcpy( expires_in_str, json + jsmn_json[6].start, jsmn_json[6].end - jsmn_json[6].start);
+   json_data->expires_in = strtol( expires_in_str, NULL, 10);
+   memcpy( json_data->refresh_token, json + jsmn_json[8].start, jsmn_json[8].end - jsmn_json[8].start);
+
    return json_data;
 }
 
@@ -71,9 +80,12 @@ jsmntok_t *json_parser(char *json, jsmntok_t *json_data)
  * to obtain the access token from the
  * Google API authorization service
  */
-jsmntok_t *exchange_code_for_token(char *code, jsmntok_t *json_data, char *json_buffer)
+json_struct *exchange_code_for_token(char *code, json_struct *json_data)
 {
    CURL *handle;
+   char *json_buffer = (char *) malloc(sizeof(char) * URL_LEN );
+   json_struct *ret;
+   CURLcode error;
 
    /*set up POST data*/
    char post_data[URL_LEN];
@@ -88,15 +100,15 @@ jsmntok_t *exchange_code_for_token(char *code, jsmntok_t *json_data, char *json_
 
    /* init curl */
    if( !curl_init ){
-      if( curl_global_init(CURL_GLOBAL_SSL) != 0 ){
-         perror("curl");
+      if( ( error = curl_global_init(CURL_GLOBAL_SSL) ) != 0 ){
+         printf("%s\n", curl_easy_strerror(error) );
          return NULL;
       }
       curl_init = 1;
    }
 
    if( !( handle = curl_easy_init() ) ){
-      perror("curl");
+      printf("curl_easy_init: something went very wrong with curl initialization\n");
       return NULL;
    }
 
@@ -105,9 +117,14 @@ jsmntok_t *exchange_code_for_token(char *code, jsmntok_t *json_data, char *json_
    curl_easy_setopt(handle, CURLOPT_POSTFIELDS, post_data);
    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_callback);
    curl_easy_setopt(handle, CURLOPT_WRITEDATA, (void *) json_buffer);
-   curl_easy_perform(handle);
+   if( ( error = curl_easy_perform(handle) ) < 0 ){
+      printf("%s\n", curl_easy_strerror(error) );
+      return NULL;
+   }
+
+   ret = json_parser(json_buffer, json_data);
 
    curl_easy_cleanup(handle);
-
-   return json_parser(json_buffer, json_data);
+   free(json_buffer);
+   return ret;
 }
