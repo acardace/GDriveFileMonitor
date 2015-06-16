@@ -70,6 +70,7 @@ json_struct *json_parser(char *json, json_struct *json_data, int request_type)
    jsmn_parser parser;
    jsmnerr_t err;
    jsmntok_t jsmn_json[ACCESS_RESPONSE_SIZE];
+   char json_error[16];
    char expires_in_str[8];
 
    switch( request_type ){
@@ -90,6 +91,13 @@ json_struct *json_parser(char *json, json_struct *json_data, int request_type)
                   printf("JSON string is too short, expecting more JSON data\n");
                   break;
             }
+            return NULL;
+         }
+
+         /*check if there is has been an error in requesting the access token*/
+         memcpy( json_error, json + jsmn_json[1].start, jsmn_json[1].end - jsmn_json[1].start);
+         if( strncmp( json_error, RESPONSE_ERROR, strlen(RESPONSE_ERROR) ) == 0){
+            printf("Error: invalid request, the pasted code is wrong, try again!\n");
             return NULL;
          }
 
@@ -118,6 +126,13 @@ json_struct *json_parser(char *json, json_struct *json_data, int request_type)
                   printf("JSON string is too short, expecting more JSON data\n");
                   break;
             }
+            return NULL;
+         }
+
+         /*check if there is has been an error in requesting the access token*/
+         memcpy( json_error, json + jsmn_json[1].start, jsmn_json[1].end - jsmn_json[1].start);
+         if( strncmp( json_error, RESPONSE_ERROR, strlen(RESPONSE_ERROR) ) == 0){
+            printf("Error: invalid request, the pasted code is wrong, try again!\n");
             return NULL;
          }
 
@@ -251,7 +266,8 @@ json_struct *exchange_code_for_token(char *code, json_struct *json_data, char *j
       return NULL;
    }
 
-   ret = json_parser(json_buffer, json_data, ACCESS_REQUEST);
+   if( ! ( ret = json_parser(json_buffer, json_data, ACCESS_REQUEST) ) )
+      return NULL;
 
    if( json_to_file(json_filepath, json_data) < 0 ){
       return NULL;

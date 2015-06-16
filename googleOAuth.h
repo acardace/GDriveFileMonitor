@@ -32,6 +32,7 @@
 #define ACCESS_RESPONSE_SIZE 9
 #define REFRESH_RESPONSE_SIZE 7
 #define JSON_FILENAME "/.google-token.json"
+#define RESPONSE_ERROR "error"
 
 #define AUTH "https://accounts.google.com/o/oauth2/auth?"
 #define SCOPE "scope=https://www.googleapis.com/auth/drive&"
