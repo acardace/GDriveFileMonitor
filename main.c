@@ -14,7 +14,7 @@
 
 int main(int argc, char *argv[])
 {
-   json_struct *json_data = (json_struct *) malloc( sizeof(json_struct) * JSON_RESPONSE_SIZE );
+   json_struct *json_data = (json_struct *) malloc( sizeof(json_struct) );
    char *json_file_path = (char *) malloc( sizeof(char) * 128 );
 
    json_file_path = strcpy( json_file_path, getenv("HOME") );
@@ -30,7 +30,8 @@ int main(int argc, char *argv[])
       printf("Copy this link and paste it into your browser:\n%s\n\n",url);
       printf("Paste the code you obtained:\n");
 
-      scanf("%s",code);
+      while( scanf("%s",code) != 1 )
+         printf("Input a correct code you obtained by the supplied link!\n");
 
       if( !(json_data = exchange_code_for_token( code, json_data, json_file_path) ) )
          exit(1);
