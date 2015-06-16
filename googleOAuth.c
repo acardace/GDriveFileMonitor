@@ -95,14 +95,14 @@ int init_curl(){
  * write the obtained json content
  * into a file
  */
-int json_to_file(char *path, char *json_content){
+int json_to_file(char *path, json_struct *json_data){
    FILE *out;
    if( !( out = fopen(path, "w+") ) ){
       perror("fopen");
       return -1;
    }
 
-   if( fprintf(out, "%s", json_content ) < 0 ){
+   if( fprintf(out, "access_token=%s\nrefresh_token=%s\ntoken_type=%s\nexpires_in=%ld", json_data->access_token, json_data->refresh_token, json_data->token_type, json_data->expires_in ) < 0 ){
       perror("fprintf");
       return -1;
    }
@@ -111,6 +111,29 @@ int json_to_file(char *path, char *json_content){
       return -1;
    }
    return 0;
+}
+
+/*
+ * read the json into
+ * a json_struct
+ */
+json_struct *json_from_file(char *path, json_struct *json_data)
+{
+   FILE *in;
+   if( !( in = fopen(path, "r") ) ){
+      perror("fopen");
+      return NULL;
+   }
+
+   if( fscanf(in, "access_token=%s\nrefresh_token=%s\ntoken_type=%s\nexpires_in=%ld", json_data->access_token, json_data->refresh_token, json_data->token_type, &json_data->expires_in ) < 0 ){
+      perror("fscanf");
+      return NULL;
+   }
+   if( fclose(in) ){
+      perror("fclose");
+      return NULL;
+   }
+   return json_data;
 }
 
 /* this function perform a POST request
@@ -155,7 +178,7 @@ json_struct *exchange_code_for_token(char *code, json_struct *json_data, char *j
 
    ret = json_parser(json_buffer, json_data);
 
-   if( json_to_file(json_filepath, json_buffer) < 0 ){
+   if( json_to_file(json_filepath, json_data) < 0 ){
       return NULL;
    }
 
@@ -170,33 +193,16 @@ json_struct *exchange_code_for_token(char *code, json_struct *json_data, char *j
 json_struct *get_access_token(json_struct *json_data, char *json_filepath){
    struct stat buf;
    long int creation_elapsed_time;
-   long int file_size;
    long int token_elapsed_time;
    struct timespec tm_now;
-   FILE *json_file;
-
-   if( ! ( json_file = fopen(json_filepath, "r") ) ){
-      perror("fopen");
-      return NULL;
-   }
-
-   fseek( json_file, 0L, SEEK_END);
-   file_size = ftell( json_file );
-   rewind( json_file );
-
-   char *json_content = (char *) malloc( sizeof(char) * file_size+1 );
 
    if( stat(json_filepath, &buf) == -1 ){
       perror("stat");
       return NULL;
    }
 
-   if( fread( json_content, file_size, 1, json_file) != 1 ){
-      printf("fread: error occured\n");
-      return NULL;
-   }
    creation_elapsed_time = buf.st_mtim.tv_sec;
-   json_data = json_parser(json_content, json_data);
+   json_data = json_from_file(json_filepath, json_data);
 
    if( clock_gettime( CLOCK_REALTIME, &tm_now ) == -1 ){
       perror("clock_gettime");
@@ -207,12 +213,8 @@ json_struct *get_access_token(json_struct *json_data, char *json_filepath){
    /* the access token has expired (less than 10 seconds remaining)
     * , we have to get a new one using the refresh token*/
    if( json_data->expires_in - token_elapsed_time < 10 ){
-      printf("access_token expired!\n");
-
    }
    else
-      printf("access_token still valid\n");
 
-   free(json_content);
    return json_data;
 }
