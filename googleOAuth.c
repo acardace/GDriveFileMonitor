@@ -37,58 +37,123 @@ size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
    memcpy(userdata, ptr, size*nmemb);
    userdata += size*nmemb;
-   return size;
+   return size*nmemb;
 }
 
 /* json parser
  * saves the content of "json" in json_data
+ * the request_type identifies the type of
+ * request to be parsed
  */
-json_struct *json_parser(char *json, json_struct *json_data)
+json_struct *json_parser(char *json, json_struct *json_data, int request_type)
 {
    jsmn_parser parser;
    jsmnerr_t err;
-   jsmntok_t jsmn_json[JSON_RESPONSE_SIZE];
+   jsmntok_t jsmn_json[ACCESS_RESPONSE_SIZE];
    char expires_in_str[8];
 
-   /*init the parser*/
-   jsmn_init(&parser);
+   switch( request_type ){
+      case ACCESS_REQUEST:
+         /*init the parser*/
+         jsmn_init(&parser);
 
-   /* parse the content of "json"*/
-   if( (err = jsmn_parse(&parser, json, strlen(json), jsmn_json,JSON_RESPONSE_SIZE) ) < 0 ){
-      switch( err ){
-         case JSMN_ERROR_INVAL:
-            printf("bad token, JSON string is corrupted\n");
-            break;
-         case JSMN_ERROR_NOMEM:
-            printf("not enough tokens, JSON string is too large\n");
-            break;
-         case JSMN_ERROR_PART:
-            printf("JSON string is too short, expecting more JSON data\n");
-            break;
-      }
-      return NULL;
+         /* parse the content of "json"*/
+         if( (err = jsmn_parse(&parser, json, strlen(json), jsmn_json, ACCESS_RESPONSE_SIZE) ) < 0 ){
+            switch( err ){
+               case JSMN_ERROR_INVAL:
+                  printf("bad token, JSON string is corrupted\n");
+                  break;
+               case JSMN_ERROR_NOMEM:
+                  printf("not enough tokens, JSON string is too large\n");
+                  break;
+               case JSMN_ERROR_PART:
+                  printf("JSON string is too short, expecting more JSON data\n");
+                  break;
+            }
+            return NULL;
+         }
+
+         /* put the parsed content in a json_struct*/
+         memcpy( json_data->access_token, json + jsmn_json[2].start, jsmn_json[2].end - jsmn_json[2].start);
+         memcpy( json_data->token_type, json + jsmn_json[4].start, jsmn_json[4].end - jsmn_json[4].start);
+         memcpy( expires_in_str, json + jsmn_json[6].start, jsmn_json[6].end - jsmn_json[6].start);
+         json_data->expires_in = strtol( expires_in_str, NULL, 10);
+         memcpy( json_data->refresh_token, json + jsmn_json[8].start, jsmn_json[8].end - jsmn_json[8].start);
+         break;
+
+      case REFRESH_REQUEST:
+         /*init the parser*/
+         jsmn_init(&parser);
+
+         /* parse the content of "json"*/
+         if( (err = jsmn_parse(&parser, json, strlen(json), jsmn_json, REFRESH_RESPONSE_SIZE) ) < 0 ){
+            switch( err ){
+               case JSMN_ERROR_INVAL:
+                  printf("bad token, JSON string is corrupted\n");
+                  break;
+               case JSMN_ERROR_NOMEM:
+                  printf("not enough tokens, JSON string is too large\n");
+                  break;
+               case JSMN_ERROR_PART:
+                  printf("JSON string is too short, expecting more JSON data\n");
+                  break;
+            }
+            return NULL;
+         }
+
+         /* put the parsed content in a json_struct*/
+         memcpy( json_data->access_token, json + jsmn_json[2].start, jsmn_json[2].end - jsmn_json[2].start);
+         memcpy( json_data->token_type, json + jsmn_json[4].start, jsmn_json[4].end - jsmn_json[4].start);
+         memcpy( expires_in_str, json + jsmn_json[6].start, jsmn_json[6].end - jsmn_json[6].start);
+         json_data->expires_in = strtol( expires_in_str, NULL, 10);
+         break;
    }
-
-   /* put the parsed content in a json_struct*/
-   memcpy( json_data->access_token, json + jsmn_json[2].start, jsmn_json[2].end - jsmn_json[2].start);
-   memcpy( json_data->token_type, json + jsmn_json[4].start, jsmn_json[4].end - jsmn_json[4].start);
-   memcpy( expires_in_str, json + jsmn_json[6].start, jsmn_json[6].end - jsmn_json[6].start);
-   json_data->expires_in = strtol( expires_in_str, NULL, 10);
-   memcpy( json_data->refresh_token, json + jsmn_json[8].start, jsmn_json[8].end - jsmn_json[8].start);
-
    return json_data;
 }
 
-int init_curl(){
+/*
+ * set up curl
+ * and returns a curl handle
+ * with the needed options
+ */
+CURL *init_curl(CURL *handle, char *json_buffer, char *post_data){
    CURLcode error;
+
    if( !curl_init ){
-      if( ( error = curl_global_init(CURL_GLOBAL_SSL) ) != 0 ){
+      if( ( error = curl_global_init(CURL_GLOBAL_SSL) ) != CURLE_OK ){
          printf("%s\n", curl_easy_strerror(error) );
-         return -1;
+         return NULL;
       }
       curl_init = 1;
    }
-   return 0;
+
+   if( !( handle = curl_easy_init() ) ){
+      printf("curl_easy_init: something went very wrong with curl initialization\n");
+      return NULL;
+   }
+
+   if( ( error = curl_easy_setopt(handle, CURLOPT_URL, AUTH2 ) ) != CURLE_OK ){
+      printf("%s\n",curl_easy_strerror(error));
+      return NULL;
+   }
+   if( ( error = curl_easy_setopt(handle, CURLOPT_POST, 1L ) ) != CURLE_OK ){
+      printf("%s\n",curl_easy_strerror(error));
+      return NULL;
+   }
+   if( ( error = curl_easy_setopt(handle, CURLOPT_POSTFIELDS, post_data ) ) != CURLE_OK ){
+      printf("%s\n",curl_easy_strerror(error));
+      return NULL;
+   }
+   if( ( error = curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_callback ) ) != CURLE_OK ){
+      printf("%s\n",curl_easy_strerror(error));
+      return NULL;
+   }
+   if( ( error = curl_easy_setopt(handle, CURLOPT_WRITEDATA, (void *) json_buffer ) ) != CURLE_OK ){
+      printf("%s\n",curl_easy_strerror(error));
+      return NULL;
+   }
+
+   return handle;
 }
 
 /*
@@ -97,7 +162,7 @@ int init_curl(){
  */
 int json_to_file(char *path, json_struct *json_data){
    FILE *out;
-   if( !( out = fopen(path, "w+") ) ){
+   if( !( out = fopen(path, "w") ) ){
       perror("fopen");
       return -1;
    }
@@ -156,33 +221,24 @@ json_struct *exchange_code_for_token(char *code, json_struct *json_data, char *j
    strcat(post_data, CLIENT_SECRET);
    strcat(post_data, REDIRECT_URI);
    strcat(post_data, "&");
-   strcat(post_data, GRANT_TYPE);
+   strcat(post_data, GRANT_TYPE_AUTH);
 
-   if( init_curl() == -1 )
+   if( !( handle = init_curl(handle, json_buffer, post_data) ) )
       return NULL;
 
-   if( !( handle = curl_easy_init() ) ){
-      printf("curl_easy_init: something went very wrong with curl initialization\n");
-      return NULL;
-   }
-
-   curl_easy_setopt(handle, CURLOPT_URL, AUTH2 );
-   curl_easy_setopt(handle, CURLOPT_POST, 1L );
-   curl_easy_setopt(handle, CURLOPT_POSTFIELDS, post_data);
-   curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_callback);
-   curl_easy_setopt(handle, CURLOPT_WRITEDATA, (void *) json_buffer);
-   if( ( error = curl_easy_perform(handle) ) < 0 ){
+   if( ( error = curl_easy_perform(handle) ) != CURLE_OK ){
       printf("%s\n", curl_easy_strerror(error) );
       return NULL;
    }
 
-   ret = json_parser(json_buffer, json_data);
+   ret = json_parser(json_buffer, json_data, ACCESS_REQUEST);
 
    if( json_to_file(json_filepath, json_data) < 0 ){
       return NULL;
    }
 
    curl_easy_cleanup(handle);
+   curl_global_cleanup();
    free(json_buffer);
    return ret;
 }
@@ -191,10 +247,13 @@ json_struct *exchange_code_for_token(char *code, json_struct *json_data, char *j
  * if needed get an access token using a refresh token
  */
 json_struct *get_access_token(json_struct *json_data, char *json_filepath){
+   CURL *handle;
+   CURLcode error;
    struct stat buf;
    long int creation_elapsed_time;
    long int token_elapsed_time;
    struct timespec tm_now;
+   char *json_buffer = (char *) malloc(sizeof(char) * URL_LEN );
 
    if( stat(json_filepath, &buf) == -1 ){
       perror("stat");
@@ -213,8 +272,36 @@ json_struct *get_access_token(json_struct *json_data, char *json_filepath){
    /* the access token has expired (less than 10 seconds remaining)
     * , we have to get a new one using the refresh token*/
    if( json_data->expires_in - token_elapsed_time < 10 ){
-   }
-   else
 
+      /*set up POST data*/
+      char post_data[URL_LEN];
+      strcpy(post_data, "refresh_token=");
+      strcat(post_data, json_data->refresh_token);
+      strcat(post_data, "&");
+      strcat(post_data, CLIENT_ID);
+      strcat(post_data, CLIENT_SECRET);
+      strcat(post_data, GRANT_TYPE_REFRESH);
+
+      if( !( handle = init_curl(handle, json_buffer, post_data) ) )
+         return NULL;
+
+      if( ( error = curl_easy_perform(handle) ) != CURLE_OK ){
+         printf("%s\n", curl_easy_strerror(error) );
+         return NULL;
+      }
+
+      /*put into a json_struct the new access token*/
+      if( ! (json_data = json_parser(json_buffer, json_data, REFRESH_REQUEST) ) )
+         return NULL;
+
+      if( json_to_file(json_filepath, json_data) < 0 ){
+         return NULL;
+      }
+
+      curl_easy_cleanup(handle);
+   }
+
+   free(json_buffer);
+   curl_global_cleanup();
    return json_data;
 }

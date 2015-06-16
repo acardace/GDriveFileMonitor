@@ -9,7 +9,8 @@
 #include "jsmn/jsmn.h"
 
 #define URL_LEN 256
-#define JSON_RESPONSE_SIZE 9
+#define ACCESS_RESPONSE_SIZE 9
+#define REFRESH_RESPONSE_SIZE 7
 #define JSON_FILENAME "/.google-token.json"
 
 #define AUTH "https://accounts.google.com/o/oauth2/auth?"
@@ -21,7 +22,11 @@
 #define AUTH_URL AUTH SCOPE CLIENT_ID RESPONSE_TYPE REDIRECT_URI
 
 #define AUTH2 "https://www.googleapis.com/oauth2/v3/token"
-#define GRANT_TYPE "grant_type=authorization_code"
+#define GRANT_TYPE_REFRESH "grant_type=refresh_token"
+#define GRANT_TYPE_AUTH "grant_type=authorization_code"
+
+#define ACCESS_REQUEST 0
+#define REFRESH_REQUEST 1
 
 typedef struct {
    char access_token[256];
