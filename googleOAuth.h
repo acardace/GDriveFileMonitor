@@ -35,7 +35,7 @@
 #define RESPONSE_ERROR "error"
 
 #define AUTH "https://accounts.google.com/o/oauth2/auth?"
-#define SCOPE "scope=https://www.googleapis.com/auth/drive&"
+#define SCOPE "scope=https://www.googleapis.com/auth/drive.file&"
 #define CLIENT_ID "client_id=110801271884-5b1rsuq2k7efitrq5tpkb8crdmp4ev38.apps.googleusercontent.com&"
 #define CLIENT_SECRET "client_secret=Pdb90_9EjZa-V712MVIwMaor&"
 #define RESPONSE_TYPE "response_type=code&"
