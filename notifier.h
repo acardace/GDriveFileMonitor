@@ -24,8 +24,8 @@
  * the function "callback" is executed
  */
 
-#ifndef __AUTOUPLOADER_NOTIFIER__
-#define __AUTOUPLOADER_NOTIFIER__
+#ifndef __GDRIVEFILEMONITOR_NOTIFIER__
+#define __GDRIVEFILEMONITOR_NOTIFIER__
 
 #include <stdio.h>
 
